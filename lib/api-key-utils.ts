@@ -5,12 +5,8 @@ import { NextRequest } from 'next/server';
  */
 
 export interface ApiKeyHeaders {
-  'x-groq-api-key'?: string;
+  'x-minimax-api-key'?: string;
   'x-e2b-api-key'?: string;
-  'x-firecrawl-api-key'?: string;
-  'x-anthropic-api-key'?: string;
-  'x-openai-api-key'?: string;
-  'x-gemini-api-key'?: string;
 }
 
 /**
@@ -18,7 +14,7 @@ export interface ApiKeyHeaders {
  */
 export function getApiKey(
   request: NextRequest,
-  provider: 'groq' | 'e2b' | 'anthropic' | 'openai' | 'gemini'
+  provider: 'minimax' | 'e2b'
 ): string | undefined {
   // First try to get from headers
   const headerKey = `x-${provider}-api-key`;
@@ -38,7 +34,7 @@ export function getApiKey(
  */
 export function getApiKeyFromBody(
   body: any,
-  provider: 'groq' | 'e2b' | 'anthropic' | 'openai' | 'gemini'
+  provider: 'minimax' | 'e2b'
 ): string | undefined {
   // First try to get from body
   const bodyKey = `${provider}ApiKey`;
@@ -55,18 +51,12 @@ export function getApiKeyFromBody(
  * Get all API keys from request headers
  */
 export function getAllApiKeysFromHeaders(request: NextRequest): {
-  groq?: string;
+  minimax?: string;
   e2b?: string;
-  anthropic?: string;
-  openai?: string;
-  gemini?: string;
 } {
   return {
-    groq: getApiKey(request, 'groq'),
+    minimax: getApiKey(request, 'minimax'),
     e2b: getApiKey(request, 'e2b'),
-    anthropic: getApiKey(request, 'anthropic'),
-    openai: getApiKey(request, 'openai'),
-    gemini: getApiKey(request, 'gemini'),
   };
 }
 
@@ -74,18 +64,12 @@ export function getAllApiKeysFromHeaders(request: NextRequest): {
  * Get all API keys from request body
  */
 export function getAllApiKeysFromBody(body: any): {
-  groq?: string;
+  minimax?: string;
   e2b?: string;
-  anthropic?: string;
-  openai?: string;
-  gemini?: string;
 } {
   return {
-    groq: getApiKeyFromBody(body, 'groq'),
+    minimax: getApiKeyFromBody(body, 'minimax'),
     e2b: getApiKeyFromBody(body, 'e2b'),
-    anthropic: getApiKeyFromBody(body, 'anthropic'),
-    openai: getApiKeyFromBody(body, 'openai'),
-    gemini: getApiKeyFromBody(body, 'gemini'),
   };
 }
 
@@ -93,12 +77,12 @@ export function getAllApiKeysFromBody(body: any): {
  * Validate that required API keys are present
  */
 export function validateRequiredApiKeys(keys: {
-  groq?: string;
+  minimax?: string;
   e2b?: string;
 }): { isValid: boolean; missing: string[] } {
   const missing: string[] = [];
 
-  if (!keys.groq) missing.push('Groq');
+  if (!keys.minimax) missing.push('MiniMax');
   if (!keys.e2b) missing.push('E2B');
 
   return {

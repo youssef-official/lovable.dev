@@ -175,20 +175,20 @@ export function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
             <h3 className="text-lg font-semibold mb-3">Required API Keys</h3>
             <div className="space-y-4">
               <ApiKeyInput
-                label="Groq API Key"
-                description="For AI inference and code generation"
-                placeholder="gsk_..."
-                value={localKeys.groq || ''}
-                onChange={(value) => handleKeyChange('groq', value)}
-                onValidate={() => handleValidateKey('groq')}
+                label="MiniMax API Key"
+                description="For AI inference and code generation using MiniMax M2 model"
+                placeholder="Enter your MiniMax API key..."
+                value={localKeys.minimax || ''}
+                onChange={(value) => handleKeyChange('minimax', value)}
+                onValidate={() => handleValidateKey('minimax')}
                 isValidating={isValidating}
-                validationResult={validationResults.groq}
-                getApiUrl="https://console.groq.com/keys"
+                validationResult={validationResults.minimax}
+                getApiUrl="https://platform.minimaxi.com/user-center/basic-information/interface-key"
                 required
               />
 
               <ApiKeyInput
-                label="E2B API Key"
+                label="E2B API Key (Sandbox)"
                 description="For code execution sandboxes"
                 placeholder="e2b_..."
                 value={localKeys.e2b || ''}
@@ -198,52 +198,6 @@ export function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
                 validationResult={validationResults.e2b}
                 getApiUrl="https://e2b.dev/dashboard"
                 required
-              />
-
-
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Optional API Keys</h3>
-            <p className="text-sm text-gray-600 mb-3">
-              Add these for additional AI model options
-            </p>
-            <div className="space-y-4">
-              <ApiKeyInput
-                label="Anthropic API Key"
-                description="For Claude models"
-                placeholder="sk-ant-..."
-                value={localKeys.anthropic || ''}
-                onChange={(value) => handleKeyChange('anthropic', value)}
-                onValidate={() => handleValidateKey('anthropic')}
-                isValidating={isValidating}
-                validationResult={validationResults.anthropic}
-                getApiUrl="https://console.anthropic.com/keys"
-              />
-
-              <ApiKeyInput
-                label="OpenAI API Key"
-                description="For GPT models"
-                placeholder="sk-..."
-                value={localKeys.openai || ''}
-                onChange={(value) => handleKeyChange('openai', value)}
-                onValidate={() => handleValidateKey('openai')}
-                isValidating={isValidating}
-                validationResult={validationResults.openai}
-                getApiUrl="https://platform.openai.com/api-keys"
-              />
-
-              <ApiKeyInput
-                label="Google Gemini API Key"
-                description="For Gemini models"
-                placeholder="AI..."
-                value={localKeys.gemini || ''}
-                onChange={(value) => handleKeyChange('gemini', value)}
-                onValidate={() => handleValidateKey('gemini')}
-                isValidating={isValidating}
-                validationResult={validationResults.gemini}
-                getApiUrl="https://aistudio.google.com/app/apikey"
               />
             </div>
           </div>

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createGroq } from '@ai-sdk/groq';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,49 +17,38 @@ export async function POST(request: NextRequest) {
     let error = '';
 
     switch (provider) {
-      case 'groq':
+      case 'minimax':
         try {
-          // Test Groq API key by checking models endpoint first (simpler)
-          const response = await fetch('https://api.groq.com/openai/v1/models', {
-            method: 'GET',
+          // Test MiniMax API key by making a simple API call
+          const response = await fetch('https://api.minimaxi.com/v1/text/chatcompletion_v2', {
+            method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+              model: 'abab6.5s-chat',
+              messages: [{ role: 'user', content: 'test' }],
+              max_tokens: 1
+            })
           });
 
-          console.log(`[validate-api-key] Groq response status: ${response.status}`);
+          console.log(`[validate-api-key] MiniMax response status: ${response.status}`);
 
-          if (response.ok) {
+          if (response.ok || response.status === 200) {
             isValid = true;
           } else if (response.status === 401 || response.status === 403) {
-            error = 'Invalid Groq API key';
+            error = 'Invalid MiniMax API key';
           } else {
-            // Try a simple completion as fallback
-            const completionResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                messages: [{ role: 'user', content: 'hi' }],
-                model: 'llama-3.1-8b-instant',
-                max_tokens: 1
-              })
-            });
-
-            if (completionResponse.ok) {
-              isValid = true;
-            } else if (completionResponse.status === 401 || completionResponse.status === 403) {
-              error = 'Invalid Groq API key';
-            } else {
-              error = `Failed to validate Groq API key (HTTP ${response.status})`;
-            }
+            // Be lenient with other status codes
+            isValid = true;
+            console.log(`[validate-api-key] MiniMax validation inconclusive, assuming valid`);
           }
         } catch (err: any) {
-          console.error('[validate-api-key] Groq error:', err);
-          error = err.message || 'Failed to validate Groq API key';
+          console.error('[validate-api-key] MiniMax error:', err);
+          // Be lenient with network errors
+          isValid = true;
+          console.log(`[validate-api-key] MiniMax validation error, assuming valid: ${err.message}`);
         }
         break;
 
@@ -119,76 +107,6 @@ export async function POST(request: NextRequest) {
           // Be lenient with network errors
           isValid = true;
           console.log(`[validate-api-key] E2B validation error, assuming valid: ${err.message}`);
-        }
-        break;
-
-
-
-      case 'anthropic':
-        try {
-          const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model: 'claude-3-haiku-20240307',
-              max_tokens: 1,
-              messages: [{ role: 'user', content: 'test' }]
-            })
-          });
-          
-          if (response.ok) {
-            isValid = true;
-          } else if (response.status === 401) {
-            error = 'Invalid Anthropic API key';
-          } else {
-            error = 'Failed to validate Anthropic API key';
-          }
-        } catch (err: any) {
-          error = err.message || 'Failed to validate Anthropic API key';
-        }
-        break;
-
-      case 'openai':
-        try {
-          const response = await fetch('https://api.openai.com/v1/models', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            isValid = true;
-          } else if (response.status === 401) {
-            error = 'Invalid OpenAI API key';
-          } else {
-            error = 'Failed to validate OpenAI API key';
-          }
-        } catch (err: any) {
-          error = err.message || 'Failed to validate OpenAI API key';
-        }
-        break;
-
-      case 'gemini':
-        try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
-            method: 'GET'
-          });
-          
-          if (response.ok) {
-            isValid = true;
-          } else if (response.status === 400 || response.status === 403) {
-            error = 'Invalid Gemini API key';
-          } else {
-            error = 'Failed to validate Gemini API key';
-          }
-        } catch (err: any) {
-          error = err.message || 'Failed to validate Gemini API key';
         }
         break;
 

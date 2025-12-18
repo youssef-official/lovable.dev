@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createGroq } from '@ai-sdk/groq';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
 import { selectFilesForEdit, getFileContents, formatFilesForAI } from '@/lib/context-selector';
@@ -9,15 +11,22 @@ import type { ConversationState, ConversationMessage, ConversationEdit } from '@
 import { appConfig } from '@/config/app.config';
 import { getAllApiKeysFromHeaders, getAllApiKeysFromBody } from '@/lib/api-key-utils';
 
-// Helper function to create AI client with dynamic API key for MiniMax
-function createAIClient(apiKey?: string) {
-  // Use MiniMax with Anthropic SDK compatibility
-  const minimax = apiKey ? createAnthropic({
-    apiKey: apiKey,
-    baseURL: 'https://api.minimax.io/anthropic',
+// Helper function to create AI clients with dynamic API keys
+function createAIClients(apiKeys: {
+  groq?: string;
+  anthropic?: string;
+  openai?: string;
+}) {
+  const groq = apiKeys.groq ? createGroq({ apiKey: apiKeys.groq }) : null;
+  const anthropic = apiKeys.anthropic ? createAnthropic({
+    apiKey: apiKeys.anthropic,
+    baseURL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1',
+  }) : null;
+  const openai = apiKeys.openai ? createOpenAI({
+    apiKey: apiKeys.openai,
   }) : null;
 
-  return minimax;
+  return { groq, anthropic, openai };
 }
 
 // Helper function to analyze user preferences from conversation history
@@ -67,15 +76,15 @@ declare global {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { prompt, model = 'minimax/minimax-m2', context, isEdit = false } = body;
+    const { prompt, model = 'openai/gpt-oss-20b', context, isEdit = false } = body;
 
     // Get API keys from headers or body, with fallback to environment variables
     const apiKeysFromHeaders = getAllApiKeysFromHeaders(request);
     const apiKeysFromBody = getAllApiKeysFromBody(body);
     const apiKeys = { ...apiKeysFromHeaders, ...apiKeysFromBody };
 
-    // Create AI client with MiniMax API key
-    const minimax = createAIClient(apiKeys.minimax);
+    // Create AI clients with dynamic API keys
+    const { groq, anthropic, openai } = createAIClients(apiKeys);
     
     console.log('[generate-ai-code-stream] Received request:');
     console.log('[generate-ai-code-stream] - prompt:', prompt);
@@ -1156,13 +1165,30 @@ CRITICAL: When files are provided in the context:
         // Track packages that need to be installed
         const packagesToInstall: string[] = [];
         
-        // Use MiniMax M2 model only
-        if (!minimax) {
-          return NextResponse.json({ error: 'MiniMax API key is required' }, { status: 400 });
+        // Determine which provider to use based on model
+        const isAnthropic = model.startsWith('anthropic/');
+        const isOpenAI = model.startsWith('openai/gpt-5');
+
+        let modelProvider;
+        if (isAnthropic) {
+          if (!anthropic) {
+            return NextResponse.json({ error: 'Anthropic API key is required for this model' }, { status: 400 });
+          }
+          modelProvider = anthropic;
+        } else if (isOpenAI) {
+          if (!openai) {
+            return NextResponse.json({ error: 'OpenAI API key is required for this model' }, { status: 400 });
+          }
+          modelProvider = openai;
+        } else {
+          if (!groq) {
+            return NextResponse.json({ error: 'Groq API key is required for this model' }, { status: 400 });
+          }
+          modelProvider = groq;
         }
-        
-        const modelProvider = minimax;
-        const actualModel = 'MiniMax-M2';
+
+        const actualModel = isAnthropic ? model.replace('anthropic/', '') :
+                           (model === 'openai/gpt-5') ? 'gpt-5' : model;
 
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
@@ -1233,11 +1259,19 @@ It's better to have 3 complete files than 10 incomplete files.`
           // We use XML tags for package detection instead
         };
         
-        // Add temperature for MiniMax M2
-        streamOptions.temperature = 0.7;
+        // Add temperature for non-reasoning models
+        if (!model.startsWith('openai/gpt-5')) {
+          streamOptions.temperature = 0.7;
+        }
         
         // Add reasoning effort for GPT-5 models
-        // MiniMax M2 doesn't need special metadata
+        if (isOpenAI) {
+          streamOptions.experimental_providerMetadata = {
+            openai: {
+              reasoningEffort: 'high'
+            }
+          };
+        }
         
         const result = await streamText(streamOptions);
         
@@ -1609,15 +1643,33 @@ Original request: ${prompt}
 Provide the complete file content without any truncation. Include all necessary imports, complete all functions, and close all tags properly.`;
                 
                 // Make a focused API call to complete this specific file
-                // Use MiniMax client for completion
-                const completionClient = minimax;
-                if (!completionClient) {
-                  console.error('[generate-ai-code-stream] MiniMax client not available for completion');
-                  continue;
+                // Create a new client for the completion based on the provider
+                let completionClient;
+                if (model.includes('gpt') || model.includes('openai')) {
+                  if (!openai) {
+                    console.error('[generate-ai-code-stream] OpenAI client not available for completion');
+                    continue;
+                  }
+                  completionClient = openai;
+                } else if (model.includes('claude')) {
+                  if (!anthropic) {
+                    console.error('[generate-ai-code-stream] Anthropic client not available for completion');
+                    continue;
+                  }
+                  completionClient = anthropic;
+                } else {
+                  if (!groq) {
+                    console.error('[generate-ai-code-stream] Groq client not available for completion');
+                    continue;
+                  }
+                  completionClient = groq;
                 }
 
+                // Check if this is a GPT-5 model (reasoning models don't use temperature)
+                const isGPT5 = model.includes('gpt-5') || model.includes('openai/gpt-5');
+
                 const completionResult = await streamText({
-                  model: completionClient('MiniMax-M2'),
+                  model: completionClient(model),
                   messages: [
                     {
                       role: 'system',
