@@ -1358,7 +1358,10 @@ It's better to have 3 complete files than 10 incomplete files.`
           }
         }
         
-        console.log('\n\n[generate-ai-code-stream] Streaming complete.');
+	        console.log('\n\n[generate-ai-code-stream] Streaming complete.');
+	        console.log('[generate-ai-code-stream] Full generated code (start):');
+	        console.log(generatedCode);
+	        console.log('[generate-ai-code-stream] Full generated code (end):');
         
         // Send any remaining conversational text
         if (conversationalBuffer.trim()) {
@@ -1419,12 +1422,17 @@ It's better to have 3 complete files than 10 incomplete files.`
           return packages;
         }
         
-        // Parse files and send progress for each
-        const fileRegex = /<file path="([^"]+)">([\s\S]*?)<\/file>/g;
-        const files: Array<{path: string, content: string}> = [];
-        let match;
-        
-        while ((match = fileRegex.exec(generatedCode)) !== null) {
+	        // Parse files and send progress for each
+	        const fileRegex = /<file path="([^"]+)">([\s\S]*?)<\/file>/g;
+	        const files: Array<{path: string, content: string}> = [];
+	        let match;
+	        
+
+	        
+	        // Reset regex index before parsing
+	        fileRegex.lastIndex = 0;
+	        
+	        while ((match = fileRegex.exec(generatedCode)) !== null) {
           const filePath = match[1];
           const content = match[2].trim();
           files.push({ path: filePath, content });
@@ -1466,9 +1474,13 @@ It's better to have 3 complete files than 10 incomplete files.`
         // Extract explanation
         const explanationMatch = generatedCode.match(/<explanation>([\s\S]*?)<\/explanation>/);
         const explanation = explanationMatch ? explanationMatch[1].trim() : 'Code generated successfully!';
-        
-        // Validate generated code for truncation issues
-        const truncationWarnings: string[] = [];
+	        
+	        // Validate generated code for truncation issues
+	        const truncationWarnings: string[] = [];
+	        
+	        if (files.length === 0) {
+	          truncationWarnings.push('No files were generated. The model may have failed to produce the required XML format.');
+	        }
         
         // Skip ellipsis checking entirely - too many false positives with spread operators, loading text, etc.
         
