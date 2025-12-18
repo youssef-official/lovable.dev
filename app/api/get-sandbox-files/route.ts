@@ -23,7 +23,7 @@ export async function GET() {
 import os
 import json
 
-def get_files_content(directory='/home/user/app', extensions=['.jsx', '.js', '.tsx', '.ts', '.css', '.json']):
+def get_files_content(directory='/home/user/app', extensions=['.jsx', '.js', '.tsx', '.ts', '.css', '.json', '.html']):
     files_content = {}
     
     for root, dirs, files in os.walk(directory):
@@ -38,8 +38,8 @@ def get_files_content(directory='/home/user/app', extensions=['.jsx', '.js', '.t
                 try:
                     with open(file_path, 'r') as f:
                         content = f.read()
-                        # Only include files under 10KB to avoid huge responses
-                        if len(content) < 10000:
+                        # Only include files under 50KB to avoid huge responses
+                        if len(content) < 50000:
                             files_content[relative_path] = content
                 except:
                     pass

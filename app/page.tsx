@@ -24,6 +24,7 @@ import { UserButton } from '@/components/UserButton';
 import { useApiRequest } from '@/hooks/useApiRequest';
 import { motion } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
+import SandboxPreview from '@/components/SandboxPreview';
 
 interface SandboxData {
   sandboxId: string;
@@ -1350,35 +1351,26 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       }
       
       // Show sandbox iframe only when not in any loading state
-      if (sandboxData?.url && !loading) {
-        return (
-          <div className="relative w-full h-full">
-            <iframe
-              ref={iframeRef}
-              src={sandboxData.url}
-              className="w-full h-full border-none"
-              title="Open Lovable Sandbox"
-              allow="clipboard-write"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-            />
-            {/* Refresh button */}
-            <button
-              onClick={() => {
-                if (iframeRef.current && sandboxData?.url) {
-                  console.log('[Manual Refresh] Forcing iframe reload...');
-                  const newSrc = `${sandboxData.url}?t=${Date.now()}&manual=true`;
-                  iframeRef.current.src = newSrc;
-                }
-              }}
-              className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
-              title="Refresh sandbox"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-        );
+      if (sandboxData && !loading) {
+         // Check if we have files (and ensure sandboxFiles exists)
+         const hasFiles = sandboxFiles && Object.keys(sandboxFiles).length > 0;
+
+         if (hasFiles) {
+            return (
+                <div className="relative w-full h-full">
+                    <SandboxPreview files={sandboxFiles} />
+                </div>
+            );
+         } else {
+             return (
+                 <div className="flex items-center justify-center h-full bg-gray-50 text-gray-600">
+                    <div className="text-center">
+                        <div className="w-8 h-8 border-2 border-gray-300 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-sm">Loading files...</p>
+                    </div>
+                 </div>
+             );
+         }
       }
       
       // Default state when no sandbox
@@ -2362,16 +2354,6 @@ Focus on creating a beautiful, functional website that matches the user's vision
               </option>
             ))}
           </select>
-          <Button 
-            variant="code"
-            onClick={() => createSandbox()}
-            size="sm"
-            title="Create new sandbox"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </Button>
           <Button 
             variant="code"
             onClick={reapplyLastGeneration}
