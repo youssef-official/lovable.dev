@@ -175,15 +175,15 @@ export function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
             <h3 className="text-lg font-semibold mb-3">Required API Keys</h3>
             <div className="space-y-4">
               <ApiKeyInput
-                label="MiniMax API Key"
-                description="For AI inference and code generation using MiniMax M2 model"
-                placeholder="Enter your MiniMax API key..."
-                value={localKeys.minimax || ''}
-                onChange={(value) => handleKeyChange('minimax', value)}
-                onValidate={() => handleValidateKey('minimax')}
+                label="OpenRouter API Key"
+                description="For AI inference and code generation using OpenRouter models (Mistral Devstral 2512)"
+                placeholder="sk-or-..."
+                value={localKeys.openrouter || ''}
+                onChange={(value) => handleKeyChange('openrouter', value)}
+                onValidate={() => handleValidateKey('openrouter')}
                 isValidating={isValidating}
-                validationResult={validationResults.minimax}
-                getApiUrl="https://platform.minimaxi.com/user-center/basic-information/interface-key"
+                validationResult={validationResults.openrouter}
+                getApiUrl="https://openrouter.ai/keys"
                 required
               />
 

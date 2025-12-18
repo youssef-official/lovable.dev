@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
 import { selectFilesForEdit, getFileContents, formatFilesForAI } from '@/lib/context-selector';
@@ -9,15 +9,14 @@ import type { ConversationState, ConversationMessage, ConversationEdit } from '@
 import { appConfig } from '@/config/app.config';
 import { getAllApiKeysFromHeaders, getAllApiKeysFromBody } from '@/lib/api-key-utils';
 
-// Helper function to create AI client with dynamic API key for MiniMax
+// Helper function to create AI client with dynamic API key for OpenRouter
 function createAIClient(apiKey?: string) {
-  // Use MiniMax with Anthropic SDK compatibility
-  const minimax = apiKey ? createAnthropic({
+  const openrouter = apiKey ? createOpenAI({
     apiKey: apiKey,
-    baseURL: 'https://api.minimax.io/anthropic',
+    baseURL: 'https://openrouter.ai/api/v1',
   }) : null;
 
-  return minimax;
+  return openrouter;
 }
 
 // Helper function to analyze user preferences from conversation history
@@ -67,19 +66,20 @@ declare global {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { prompt, model = 'minimax/minimax-m2', context, isEdit = false } = body;
+    const { prompt, model = 'mistralai/devstral-2512:free', context, isEdit = false } = body;
 
     // Get API keys from headers or body, with fallback to environment variables
     const apiKeysFromHeaders = getAllApiKeysFromHeaders(request);
     const apiKeysFromBody = getAllApiKeysFromBody(body);
     const apiKeys = { ...apiKeysFromHeaders, ...apiKeysFromBody };
 
-    // Create AI client with MiniMax API key
-    const minimax = createAIClient(apiKeys.minimax);
+    // Create AI client with OpenRouter API key
+    const openrouter = createAIClient(apiKeys.openrouter);
     
     console.log('[generate-ai-code-stream] Received request:');
     console.log('[generate-ai-code-stream] - prompt:', prompt);
     console.log('[generate-ai-code-stream] - isEdit:', isEdit);
+    console.log('[generate-ai-code-stream] - model:', model);
     console.log('[generate-ai-code-stream] - context.sandboxId:', context?.sandboxId);
     console.log('[generate-ai-code-stream] - context.currentFiles:', context?.currentFiles ? Object.keys(context.currentFiles) : 'none');
     console.log('[generate-ai-code-stream] - currentFiles count:', context?.currentFiles ? Object.keys(context.currentFiles).length : 0);
@@ -176,9 +176,13 @@ export async function POST(request: NextRequest) {
             
             // STEP 1: Get search plan from AI
             try {
+              // Pass OpenRouter Key in header for analyze-edit-intent
               const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-edit-intent`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-openrouter-api-key': apiKeys.openrouter || ''
+                },
                 body: JSON.stringify({ prompt, manifest, model })
               });
               
@@ -320,9 +324,13 @@ User request: "${prompt}"`;
                     
                     // Now try to analyze edit intent with the fetched manifest
                     try {
+                      // Pass OpenRouter Key in header for analyze-edit-intent
                       const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-edit-intent`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'x-openrouter-api-key': apiKeys.openrouter || ''
+                        },
                         body: JSON.stringify({ prompt, manifest, model })
                       });
                       
@@ -971,9 +979,13 @@ CRITICAL: When files are provided in the context:
                     if (!editContext) {
                       console.log('[generate-ai-code-stream] Analyzing edit intent with fetched manifest');
                       try {
+                        // Pass OpenRouter Key in header for analyze-edit-intent
                         const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-edit-intent`, {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-openrouter-api-key': apiKeys.openrouter || ''
+                          },
                           body: JSON.stringify({ prompt, manifest: filesData.manifest, model })
                         });
                         
@@ -1156,17 +1168,15 @@ CRITICAL: When files are provided in the context:
         // Track packages that need to be installed
         const packagesToInstall: string[] = [];
         
-        // Use MiniMax M2 model only
-        if (!minimax) {
-          return NextResponse.json({ error: 'MiniMax API key is required' }, { status: 400 });
+        if (!openrouter) {
+          return NextResponse.json({ error: 'OpenRouter API key is required' }, { status: 400 });
         }
         
-        const modelProvider = minimax;
-        const actualModel = 'MiniMax-M2';
+        const modelProvider = openrouter;
 
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
-          model: modelProvider(actualModel),
+          model: modelProvider(model),
           messages: [
             { 
               role: 'system', 
@@ -1228,16 +1238,12 @@ It's better to have 3 complete files than 10 incomplete files.`
             }
           ],
           maxTokens: 8192, // Reduce to ensure completion
-          stopSequences: [] // Don't stop early
           // Note: Neither Groq nor Anthropic models support tool/function calling in this context
           // We use XML tags for package detection instead
         };
         
-        // Add temperature for MiniMax M2
+        // Add temperature for Mistral
         streamOptions.temperature = 0.7;
-        
-        // Add reasoning effort for GPT-5 models
-        // MiniMax M2 doesn't need special metadata
         
         const result = await streamText(streamOptions);
         
@@ -1621,15 +1627,15 @@ Original request: ${prompt}
 Provide the complete file content without any truncation. Include all necessary imports, complete all functions, and close all tags properly.`;
                 
                 // Make a focused API call to complete this specific file
-                // Use MiniMax client for completion
-                const completionClient = minimax;
+                // Use OpenRouter client for completion
+                const completionClient = openrouter;
                 if (!completionClient) {
-                  console.error('[generate-ai-code-stream] MiniMax client not available for completion');
+                  console.error('[generate-ai-code-stream] OpenRouter client not available for completion');
                   continue;
                 }
 
                 const completionResult = await streamText({
-                  model: completionClient('MiniMax-M2'),
+                  model: completionClient(model),
                   messages: [
                     {
                       role: 'system',

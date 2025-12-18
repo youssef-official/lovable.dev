@@ -13,8 +13,8 @@ export function useApiRequest() {
     const headers = new Headers(options.headers);
 
     // Add API keys to headers
-    if (apiKeys.minimax) {
-      headers.set('x-minimax-api-key', apiKeys.minimax);
+    if (apiKeys.openrouter) {
+      headers.set('x-openrouter-api-key', apiKeys.openrouter);
     }
     if (apiKeys.e2b) {
       headers.set('x-e2b-api-key', apiKeys.e2b);
@@ -31,7 +31,7 @@ export function useApiRequest() {
     // Add API keys to the request body as well for compatibility
     const bodyWithKeys = {
       ...body,
-      minimaxApiKey: apiKeys.minimax,
+      openrouterApiKey: apiKeys.openrouter,
       e2bApiKey: apiKeys.e2b,
     };
 
@@ -49,6 +49,6 @@ export function useApiRequest() {
   return {
     makeRequest,
     makeRequestWithBody,
-    hasRequiredKeys: !!(apiKeys.minimax && apiKeys.e2b)
+    hasRequiredKeys: !!(apiKeys.openrouter && apiKeys.e2b)
   };
 }

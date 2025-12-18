@@ -28,16 +28,16 @@ export const appConfig = {
   // AI Model Configuration
   ai: {
     // Default AI model
-    defaultModel: 'minimax/minimax-m2',
+    defaultModel: 'mistralai/devstral-2512:free',
     
     // Available models
     availableModels: [
-      'minimax/minimax-m2'
+      'mistralai/devstral-2512:free'
     ],
     
     // Model display names
     modelDisplayNames: {
-      'minimax/minimax-m2': 'MiniMax M2'
+      'mistralai/devstral-2512:free': 'Mistral Devstral 2512 (Free)'
     },
     
     // Temperature settings for non-reasoning models

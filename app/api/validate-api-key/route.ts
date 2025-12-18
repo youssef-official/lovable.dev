@@ -17,38 +17,38 @@ export async function POST(request: NextRequest) {
     let error = '';
 
     switch (provider) {
-      case 'minimax':
+      case 'openrouter':
         try {
-          // Test MiniMax API key by making a simple API call
-          const response = await fetch('https://api.minimaxi.com/v1/text/chatcompletion_v2', {
+          // Test OpenRouter API key by making a simple API call
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'abab6.5s-chat',
+              model: 'mistralai/mistral-7b-instruct:free', // Use a free/cheap model for validation
               messages: [{ role: 'user', content: 'test' }],
               max_tokens: 1
             })
           });
 
-          console.log(`[validate-api-key] MiniMax response status: ${response.status}`);
+          console.log(`[validate-api-key] OpenRouter response status: ${response.status}`);
 
           if (response.ok || response.status === 200) {
             isValid = true;
           } else if (response.status === 401 || response.status === 403) {
-            error = 'Invalid MiniMax API key';
+            error = 'Invalid OpenRouter API key';
           } else {
             // Be lenient with other status codes
             isValid = true;
-            console.log(`[validate-api-key] MiniMax validation inconclusive, assuming valid`);
+            console.log(`[validate-api-key] OpenRouter validation inconclusive, assuming valid`);
           }
         } catch (err: any) {
-          console.error('[validate-api-key] MiniMax error:', err);
+          console.error('[validate-api-key] OpenRouter error:', err);
           // Be lenient with network errors
           isValid = true;
-          console.log(`[validate-api-key] MiniMax validation error, assuming valid: ${err.message}`);
+          console.log(`[validate-api-key] OpenRouter validation error, assuming valid: ${err.message}`);
         }
         break;
 

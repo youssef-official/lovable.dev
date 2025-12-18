@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import type { FileManifest } from '@/types/file-manifest';
 
-// Create MiniMax client using Anthropic SDK compatibility
-const minimax = createAnthropic({
-  apiKey: process.env.MINIMAX_API_KEY,
-  baseURL: 'https://api.minimax.io/anthropic',
-});
+// Helper function to create AI client with dynamic API key for OpenRouter
+function createAIClient(apiKey?: string) {
+  const openrouter = apiKey ? createOpenAI({
+    apiKey: apiKey,
+    baseURL: 'https://openrouter.ai/api/v1',
+  }) : null;
+
+  return openrouter;
+}
 
 // Schema for the AI's search plan - not file selection!
 const searchPlanSchema = z.object({
@@ -40,7 +44,19 @@ const searchPlanSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, manifest, model = 'minimax/minimax-m2' } = await request.json();
+    const { prompt, manifest, model = 'mistralai/devstral-2512:free' } = await request.json();
+
+    // Get OpenRouter API key
+    // First try header, then env var
+    const apiKey = request.headers.get('x-openrouter-api-key') || process.env.OPENROUTER_API_KEY || process.env.MINIMAX_API_KEY; // Fallback for transition
+
+    if (!apiKey) {
+      return NextResponse.json({
+        error: 'OpenRouter API key is required'
+      }, { status: 401 });
+    }
+
+    const openrouter = createAIClient(apiKey);
     
     console.log('[analyze-edit-intent] Request received');
     console.log('[analyze-edit-intent] Prompt:', prompt);
@@ -82,10 +98,16 @@ export async function POST(request: NextRequest) {
     console.log('[analyze-edit-intent] Analyzing prompt:', prompt);
     console.log('[analyze-edit-intent] File summary preview:', fileSummary.split('\n').slice(0, 5).join('\n'));
     
-    // Use MiniMax M2 model
-    const aiModel: LanguageModel = minimax('MiniMax-M2');
+    if (!openrouter) {
+      return NextResponse.json({
+        error: 'OpenRouter client initialization failed'
+      }, { status: 500 });
+    }
+
+    // Use OpenRouter model
+    const aiModel: LanguageModel = openrouter(model);
     
-    console.log('[analyze-edit-intent] Using AI model: MiniMax-M2');
+    console.log(`[analyze-edit-intent] Using AI model: ${model}`);
     
     // Use AI to create a search plan
     const result = await generateObject({

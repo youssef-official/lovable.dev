@@ -4,7 +4,7 @@
  */
 
 export interface ApiKeys {
-  minimax?: string;
+  openrouter?: string;
   e2b?: string;
 }
 
@@ -57,22 +57,22 @@ export function clearStoredApiKeys(): void {
 }
 
 /**
- * Validate MiniMax API key
+ * Validate OpenRouter API key
  */
-export async function validateMinimaxApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
+export async function validateOpenRouterApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
   if (!apiKey || apiKey.trim().length === 0) {
-    return { isValid: false, error: 'MiniMax API key is required' };
+    return { isValid: false, error: 'OpenRouter API key is required' };
   }
 
   try {
     const response = await fetch('/api/validate-api-key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: 'minimax', apiKey })
+      body: JSON.stringify({ provider: 'openrouter', apiKey })
     });
 
     if (!response.ok) {
-      console.error('MiniMax validation request failed:', response.status);
+      console.error('OpenRouter validation request failed:', response.status);
       // If validation endpoint fails, assume valid if format is correct
       return { isValid: true };
     }
@@ -80,7 +80,7 @@ export async function validateMinimaxApiKey(apiKey: string): Promise<ApiKeyValid
     const result = await response.json();
     return { isValid: result.valid, error: result.error };
   } catch (error) {
-    console.error('MiniMax validation error:', error);
+    console.error('OpenRouter validation error:', error);
     // If validation fails due to network/other issues, assume valid if format is correct
     return { isValid: true };
   }
@@ -131,7 +131,7 @@ export function getApiKey(provider: keyof ApiKeys): string | undefined {
  */
 export function hasRequiredApiKeys(): boolean {
   const keys = getStoredApiKeys();
-  return !!(keys.minimax && keys.e2b);
+  return !!(keys.openrouter && keys.e2b);
 }
 
 /**
@@ -141,7 +141,7 @@ export function getMissingRequiredApiKeys(): string[] {
   const keys = getStoredApiKeys();
   const missing: string[] = [];
 
-  if (!keys.minimax) missing.push('MiniMax');
+  if (!keys.openrouter) missing.push('OpenRouter');
   if (!keys.e2b) missing.push('E2B');
 
   return missing;

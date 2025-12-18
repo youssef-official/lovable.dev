@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
  */
 
 export interface ApiKeyHeaders {
-  'x-minimax-api-key'?: string;
+  'x-openrouter-api-key'?: string;
   'x-e2b-api-key'?: string;
 }
 
@@ -14,7 +14,7 @@ export interface ApiKeyHeaders {
  */
 export function getApiKey(
   request: NextRequest,
-  provider: 'minimax' | 'e2b'
+  provider: 'openrouter' | 'e2b'
 ): string | undefined {
   // First try to get from headers
   const headerKey = `x-${provider}-api-key`;
@@ -34,7 +34,7 @@ export function getApiKey(
  */
 export function getApiKeyFromBody(
   body: any,
-  provider: 'minimax' | 'e2b'
+  provider: 'openrouter' | 'e2b'
 ): string | undefined {
   // First try to get from body
   const bodyKey = `${provider}ApiKey`;
@@ -51,11 +51,11 @@ export function getApiKeyFromBody(
  * Get all API keys from request headers
  */
 export function getAllApiKeysFromHeaders(request: NextRequest): {
-  minimax?: string;
+  openrouter?: string;
   e2b?: string;
 } {
   return {
-    minimax: getApiKey(request, 'minimax'),
+    openrouter: getApiKey(request, 'openrouter'),
     e2b: getApiKey(request, 'e2b'),
   };
 }
@@ -64,11 +64,11 @@ export function getAllApiKeysFromHeaders(request: NextRequest): {
  * Get all API keys from request body
  */
 export function getAllApiKeysFromBody(body: any): {
-  minimax?: string;
+  openrouter?: string;
   e2b?: string;
 } {
   return {
-    minimax: getApiKeyFromBody(body, 'minimax'),
+    openrouter: getApiKeyFromBody(body, 'openrouter'),
     e2b: getApiKeyFromBody(body, 'e2b'),
   };
 }
@@ -77,12 +77,12 @@ export function getAllApiKeysFromBody(body: any): {
  * Validate that required API keys are present
  */
 export function validateRequiredApiKeys(keys: {
-  minimax?: string;
+  openrouter?: string;
   e2b?: string;
 }): { isValid: boolean; missing: string[] } {
   const missing: string[] = [];
 
-  if (!keys.minimax) missing.push('MiniMax');
+  if (!keys.openrouter) missing.push('OpenRouter');
   if (!keys.e2b) missing.push('E2B');
 
   return {
