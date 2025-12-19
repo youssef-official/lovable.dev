@@ -124,7 +124,7 @@ function AISandboxPage() {
     lastProcessedPosition: 0
   });
 
-  // Clear old conversation data on component mount and create/restore sandbox
+  // Clear old conversation data on component mount
   useEffect(() => {
     let isMounted = true;
 
@@ -146,30 +146,9 @@ function AISandboxPage() {
       
       if (!isMounted) return;
 
-      // Check if sandbox ID is in URL
-      const sandboxIdParam = searchParams.get('sandbox');
-      
-      setLoading(true);
-      try {
-        if (sandboxIdParam) {
-          console.log('[home] Attempting to restore sandbox:', sandboxIdParam);
-          // For now, just create a new sandbox - you could enhance this to actually restore
-          // the specific sandbox if your backend supports it
-          await createSandbox(true);
-        } else {
-          console.log('[home] No sandbox in URL, creating new sandbox automatically...');
-          await createSandbox(true);
-        }
-      } catch (error) {
-        console.error('[ai-sandbox] Failed to create or restore sandbox:', error);
-        if (isMounted) {
-          addChatMessage('Failed to create or restore sandbox.', 'error');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
+      // Remove E2B sandbox creation logic
+      // We are using Sandpack for client-side preview now.
+      setLoading(false);
     };
     
     initializePage();
@@ -1425,18 +1404,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       return;
     }
     
-    // Start sandbox creation in parallel if needed
-    let sandboxPromise: Promise<void> | null = null;
-    let sandboxCreating = false;
-    
-    if (!sandboxData) {
-      sandboxCreating = true;
-      addChatMessage('Creating sandbox while I plan your app...', 'system');
-      sandboxPromise = createSandbox(true).catch((error: any) => {
-        addChatMessage(`Failed to create sandbox: ${error.message}`, 'system');
-        throw error;
-      });
-    }
+    // Removed automatic sandbox creation since we are using Sandpack
+    // We can rely on local file state and backend's stateless generation
     
     // Determine if this is an edit
     const isEdit = conversationContext.appliedCode.length > 0;
@@ -1462,22 +1431,27 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         files: prev.files
       }));
       
-      // Backend now manages file state - no need to fetch from frontend
-      console.log('[chat] Using backend file cache for context');
+      // Pass client-side files to the backend for context since we might not have a backend sandbox
+      const currentFilesMap = generationProgress.files.reduce((acc, file) => {
+          acc[file.path] = file.content;
+          return acc;
+      }, {} as Record<string, string>);
+
+      console.log('[chat] Using client file state for context');
       
       const fullContext = {
-        sandboxId: sandboxData?.sandboxId || (sandboxCreating ? 'pending' : null),
+        sandboxId: null, // No E2B sandbox
         structure: structureContent,
         recentMessages: chatMessages.slice(-20),
         conversationContext: conversationContext,
         currentCode: promptInput,
-        sandboxUrl: sandboxData?.url,
-        sandboxCreating: sandboxCreating
+        sandboxUrl: null,
+        sandboxCreating: false,
+        currentFiles: currentFilesMap // Pass current files explicitly
       };
       
       // Debug what we're sending
       console.log('[chat] Sending context to AI:');
-      console.log('[chat] - sandboxId:', fullContext.sandboxId);
       console.log('[chat] - isEdit:', conversationContext.appliedCode.length > 0);
       
       const response = await makeRequestWithBody('/api/generate-ai-code-stream', {
@@ -1752,21 +1726,9 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         // Don't show the Generated Code panel by default
         // setLeftPanelVisible(true);
         
-        // Wait for sandbox creation if it's still in progress
-        if (sandboxPromise) {
-          addChatMessage('Waiting for sandbox to be ready...', 'system');
-          try {
-            await sandboxPromise;
-            // Remove the waiting message
-            setChatMessages(prev => prev.filter(msg => msg.content !== 'Waiting for sandbox to be ready...'));
-          } catch {
-            addChatMessage('Sandbox creation failed. Cannot apply code.', 'system');
-            return;
-          }
-        }
-        
-        if (sandboxData && generatedCode) {
+        if (generatedCode) {
           // Use isEdit flag that was determined at the start
+          // We don't need sandboxData check anymore as we use local state
           await applyGeneratedCode(generatedCode, isEdit);
         }
       }
@@ -1965,12 +1927,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       currentProject: `Website: ${description}`
     }));
 
-    // Start sandbox creation in parallel with code generation
-    let sandboxPromise: Promise<void> | null = null;
-    if (!sandboxData) {
-      addChatMessage('Creating sandbox while generating your React app...', 'system');
-      sandboxPromise = createSandbox(true);
-    }
+    // Removed automatic sandbox creation
 
     addChatMessage('Generating your custom React application...', 'system');
 
@@ -2103,11 +2060,6 @@ Focus on creating a beautiful, functional website that matches the user's vision
       }
 
       if (generatedCode.trim()) {
-        // Wait for sandbox to be ready if it was being created
-        if (sandboxPromise) {
-          await sandboxPromise;
-        }
-
         await applyGeneratedCode(generatedCode, false);
 
         addChatMessage(
@@ -2386,10 +2338,6 @@ Focus on creating a beautiful, functional website that matches the user's vision
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
             </svg>
           </Button>
-          <div className="inline-flex items-center gap-2 bg-[#36322F] text-white px-3 py-1.5 rounded-[10px] text-sm font-medium [box-shadow:inset_0px_-2px_0px_0px_#171310,_0px_1px_6px_0px_rgba(58,_33,_8,_58%)]">
-            <span id="status-text">{status.text}</span>
-            <div className={`w-2 h-2 rounded-full ${status.active ? 'bg-green-500' : 'bg-gray-500'}`} />
-          </div>
         </div>
       </div>
 

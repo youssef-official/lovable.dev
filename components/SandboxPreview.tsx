@@ -32,35 +32,40 @@ export default function SandboxPreview({
   }, {} as Record<string, string>);
 
   return (
-    <SandpackProvider
-      template={activeTemplate as any}
-      files={sandpackFiles}
-      options={{
-        externalResources: ["https://cdn.tailwindcss.com"],
-        classes: {
-            "sp-wrapper": "h-full",
-            "sp-layout": "h-full",
-            "sp-stack": "h-full",
-        }
-      }}
-      theme="dark"
-      customSetup={{
-        dependencies: {
-           "lucide-react": "latest",
-           "react-router-dom": "latest",
-           "clsx": "latest",
-           "tailwind-merge": "latest",
-        }
-      }}
-    >
-      <SandpackLayout style={{ height: '100%', border: 'none', borderRadius: '0.5rem' }}>
-        <SandpackPreview
-            style={{ height: '100%' }}
-            showOpenInCodeSandbox={false}
-            showRefreshButton={true}
-            showRestartButton={true}
-        />
-      </SandpackLayout>
-    </SandpackProvider>
+    <div className="h-full w-full">
+        <SandpackProvider
+        template={activeTemplate as any}
+        files={sandpackFiles}
+        options={{
+            externalResources: ["https://cdn.tailwindcss.com"],
+            classes: {
+                "sp-wrapper": "h-full w-full",
+                "sp-layout": "h-full w-full",
+                "sp-stack": "h-full w-full",
+                "sp-preview-container": "h-full w-full",
+                "sp-preview-iframe": "h-full w-full",
+            }
+        }}
+        theme="dark"
+        customSetup={{
+            dependencies: {
+            "lucide-react": "latest",
+            "react-router-dom": "latest",
+            "clsx": "latest",
+            "tailwind-merge": "latest",
+            }
+        }}
+        style={{ height: '100%', width: '100%' }}
+        >
+        <SandpackLayout style={{ height: '100%', width: '100%', border: 'none', borderRadius: '0.5rem' }}>
+            <SandpackPreview
+                style={{ height: '100%', width: '100%' }}
+                showOpenInCodeSandbox={false}
+                showRefreshButton={true}
+                showRestartButton={true}
+            />
+        </SandpackLayout>
+        </SandpackProvider>
+    </div>
   );
 }
