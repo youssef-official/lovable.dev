@@ -1351,17 +1351,27 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       }
       
       // Show sandbox iframe only when not in any loading state
-      if (sandboxData && !loading) {
-         // Check if we have files (and ensure sandboxFiles exists)
-         const hasFiles = sandboxFiles && Object.keys(sandboxFiles).length > 0;
+      if (!loading) {
+         // Prioritize sandboxFiles (from server), fallback to generationProgress.files (local)
+         let filesToRender = sandboxFiles;
+
+         // If server files are empty but we have generated files, use those
+         if ((!filesToRender || Object.keys(filesToRender).length === 0) && generationProgress.files.length > 0) {
+             filesToRender = generationProgress.files.reduce((acc, file) => {
+                 acc[file.path] = file.content;
+                 return acc;
+             }, {} as Record<string, string>);
+         }
+
+         const hasFiles = filesToRender && Object.keys(filesToRender).length > 0;
 
          if (hasFiles) {
             return (
                 <div className="relative w-full h-full">
-                    <SandboxPreview files={sandboxFiles} />
+                    <SandboxPreview files={filesToRender} />
                 </div>
             );
-         } else {
+         } else if (sandboxData) {
              return (
                  <div className="flex items-center justify-center h-full bg-gray-50 text-gray-600">
                     <div className="text-center">
@@ -1373,7 +1383,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
          }
       }
       
-      // Default state when no sandbox
+      // Default state when no sandbox and no files
       return (
         <div className="flex items-center justify-center h-full bg-gray-50 text-gray-600 text-lg">
           {sandboxData ? (
@@ -2671,26 +2681,6 @@ Focus on creating a beautiful, functional website that matches the user's vision
                     )}
                   </div>
                 </div>
-              )}
-              {sandboxData && !generationProgress.isGenerating && (
-                <>
-                  <Button
-                    variant="code"
-                    size="sm"
-                    asChild
-                  >
-                    <a 
-                      href={sandboxData.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      title="Open in new tab"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  </Button>
-                </>
               )}
             </div>
           </div>
