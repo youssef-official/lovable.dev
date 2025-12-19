@@ -1331,18 +1331,20 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       
       // Show sandbox iframe only when not in any loading state
       if (!loading) {
-         // Prioritize sandboxFiles (from server), fallback to generationProgress.files (local)
-         let filesToRender = sandboxFiles;
+         // Use generationProgress.files (local) as primary source
+         // This ensures immediate preview updates
+         let filesToRender: Record<string, string> = {};
 
-         // If server files are empty but we have generated files, use those
-         if ((!filesToRender || Object.keys(filesToRender).length === 0) && generationProgress.files.length > 0) {
+         if (generationProgress.files.length > 0) {
              filesToRender = generationProgress.files.reduce((acc, file) => {
                  acc[file.path] = file.content;
                  return acc;
              }, {} as Record<string, string>);
+         } else if (sandboxFiles && Object.keys(sandboxFiles).length > 0) {
+             filesToRender = sandboxFiles;
          }
 
-         const hasFiles = filesToRender && Object.keys(filesToRender).length > 0;
+         const hasFiles = Object.keys(filesToRender).length > 0;
 
          if (hasFiles) {
             return (

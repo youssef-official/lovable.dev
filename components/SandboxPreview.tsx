@@ -12,24 +12,28 @@ export default function SandboxPreview({
   // Detect template if not provided
   // Simple heuristic: check for package.json dependencies or file extensions
   let activeTemplate = template;
+
+  // Clean paths first to ensure detection works correctly
+  const sandpackFiles = Object.entries(files).reduce((acc, [path, content]) => {
+    // Remove leading slash if present to match Sandpack's relative path expectation
+    // e.g. "/src/App.jsx" -> "src/App.jsx"
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+
+    if (content) {
+      acc[cleanPath] = content;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
   if (!activeTemplate) {
-      if (files['package.json'] && files['package.json'].includes('"next"')) {
+      if (sandpackFiles['package.json'] && sandpackFiles['package.json'].includes('"next"')) {
           activeTemplate = "nextjs";
-      } else if (files['tsconfig.json']) {
+      } else if (sandpackFiles['tsconfig.json']) {
           activeTemplate = "vite-react-ts";
       } else {
           activeTemplate = "vite-react";
       }
   }
-
-  // Filter out any files that might cause issues or empty keys
-  // and map them to what Sandpack expects
-  const sandpackFiles = Object.entries(files).reduce((acc, [path, content]) => {
-    if (content) {
-      acc[path] = content;
-    }
-    return acc;
-  }, {} as Record<string, string>);
 
   return (
     <div className="h-full w-full">
@@ -53,6 +57,8 @@ export default function SandboxPreview({
             "react-router-dom": "latest",
             "clsx": "latest",
             "tailwind-merge": "latest",
+            "framer-motion": "latest",
+            "recharts": "latest",
             }
         }}
         style={{ height: '100%', width: '100%' }}
