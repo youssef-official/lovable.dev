@@ -48,7 +48,8 @@ export default function SandboxPreview({
                 "sp-stack": "h-full w-full",
                 "sp-preview-container": "h-full w-full",
                 "sp-preview-iframe": "h-full w-full",
-            }
+            },
+            activeFile: activeTemplate === 'nextjs' ? '/pages/index.js' : '/src/App.jsx'
         }}
         theme="dark"
         customSetup={{
